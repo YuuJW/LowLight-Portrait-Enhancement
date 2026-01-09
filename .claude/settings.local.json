@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(gh search repos:*)",
+      "Bash(git clone:*)",
+      "Bash(dir:*)",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''LowLight-Portrait-Enhancement'' -Recurse -ErrorAction SilentlyContinue | Select-Object FullName\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\models'' -File\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\train'' -File\")",
+      "Bash(powershell -Command:*)",
+      "Bash(ls -la \"D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\models\"\" 2>&1 || echo \"Directory may be empty or does not exist \")",
+      "Bash(ls:*)",
+      "Bash(test -d \"D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\models\")",
+      "Bash(test:*)"
+    ]
+  }
+}
