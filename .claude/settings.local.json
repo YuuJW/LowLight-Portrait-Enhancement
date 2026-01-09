@@ -12,7 +12,8 @@
       "Bash(ls -la \"D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\models\"\" 2>&1 || echo \"Directory may be empty or does not exist \")",
       "Bash(ls:*)",
       "Bash(test -d \"D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\models\")",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
