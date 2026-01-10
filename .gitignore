@@ -73,3 +73,8 @@ Makefile
 # Temporary files
 *.tmp
 *.temp
+nul
+
+# External repositories (cloned references)
+references/Retinexformer-master/
+references/Retinexformer/
