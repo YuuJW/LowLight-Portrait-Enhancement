@@ -96,19 +96,53 @@ RetinexFormer 预训练权重
 
 ## 快速开始
 
+### 首次配置（克隆后运行一次）
+
 ```bash
-# 1. 环境配置
+# 1. 克隆项目
+git clone https://github.com/YuuJW/LowLight-Portrait-Enhancement.git
+cd LowLight-Portrait-Enhancement
+
+# 2. 创建 conda 环境
 conda create -n lowlight python=3.10
 conda activate lowlight
-pip install torch torchvision onnx onnxruntime opencv-python
 
-# 2. 下载预训练权重
-python scripts/download_pretrained.py --model retinexformer
+# 3. 安装依赖
+pip install torch torchvision onnx onnxruntime opencv-python gdown
 
-# 3. 验证推理
+# 4. 运行配置脚本（自动克隆 RetinexFormer + 下载权重）
+python scripts/setup.py
+```
+
+配置脚本会自动完成：
+- 克隆 RetinexFormer 官方仓库到 `../references/Retinexformer/`
+- 下载预训练权重到 `deploy/models/`
+- 创建必要的目录结构
+
+如果网络有问题，可以使用镜像或跳过权重下载：
+```bash
+python scripts/setup.py --mirror           # 使用镜像加速
+python scripts/setup.py --skip-weights     # 跳过权重下载（手动下载）
+```
+
+### 手动下载权重（备用）
+
+如果自动下载失败，请手动下载：
+
+| 权重 | PSNR | 下载链接 |
+|------|------|----------|
+| LOL_v2_synthetic.pth | 29.04 | [Google Drive](https://drive.google.com/drive/folders/1ynK5hfQachzc8y96ZumhkPPDXzHJwaQV) |
+| LOL_v2_real.pth | 27.71 | [百度网盘](https://pan.baidu.com/s/13zNqyKuxvLBiQunIxG_VhQ?pwd=cyh2) 提取码: cyh2 |
+
+下载后放到 `deploy/models/` 目录。
+
+### 开发流程
+
+```bash
+# 验证推理
 python tests/test_retinexformer.py --image data/LOL/eval15/low/1.png
 
-# 4. 导出 ONNX
+# 导出 ONNX
 python deploy/export_onnx.py --model retinexformer --output deploy/models/
 ```
 
