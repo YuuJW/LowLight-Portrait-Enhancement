@@ -14,7 +14,10 @@
       "Bash(test -d \"D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\models\")",
       "Bash(test:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(timeout 10 curl:*)",
+      "Bash(pip install:*)",
+      "Bash(python tests/test_retinexformer.py:*)"
     ]
   }
 }
