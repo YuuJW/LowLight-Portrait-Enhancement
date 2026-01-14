@@ -17,7 +17,11 @@
       "Bash(git push:*)",
       "Bash(timeout 10 curl:*)",
       "Bash(pip install:*)",
-      "Bash(python tests/test_retinexformer.py:*)"
+      "Bash(python tests/test_retinexformer.py:*)",
+      "Bash(pip show:*)",
+      "Bash(findstr:*)",
+      "Bash(where:*)",
+      "Bash(cmake --version:*)"
     ]
   }
 }

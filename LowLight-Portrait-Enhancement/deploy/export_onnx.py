@@ -44,6 +44,7 @@ def export_onnx(model, output_path, input_size, opset_version):
     print(f'Exporting ONNX with input size: {h}x{w}')
     print(f'Opset version: {opset_version}')
 
+    # Use dynamo=False to force legacy exporter (avoids onnxscript compatibility issues)
     torch.onnx.export(
         model,
         dummy_input,
@@ -52,7 +53,8 @@ def export_onnx(model, output_path, input_size, opset_version):
         output_names=['output'],
         opset_version=opset_version,
         do_constant_folding=True,
-        dynamic_axes=None  # Fixed input size for NCNN compatibility
+        dynamic_axes=None,  # Fixed input size for NCNN compatibility
+        dynamo=False  # Force legacy exporter for compatibility
     )
 
     print(f'Exported: {output_path}')

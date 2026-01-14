@@ -36,12 +36,27 @@ Setup script options:
 
 ### Development Commands
 ```powershell
-# Test RetinexFormer inference (after models/retinexformer.py is implemented)
-python tests/test_retinexformer.py --image data/LOL/eval15/low/1.png
+# Test RetinexFormer inference
+python tests/test_retinexformer.py --image data/LOL/lol_dataset/eval15/low/1.png
 
-# Export to ONNX (after deploy/export_onnx.py is implemented)
-python deploy/export_onnx.py --model retinexformer --output deploy/models/
+# Export to ONNX
+python deploy/export_onnx.py --output deploy/models/retinexformer.onnx
+
+# Export with verification and simplification
+python deploy/export_onnx.py --output deploy/models/retinexformer.onnx --verify --simplify
 ```
+
+Test script options:
+- `--weights <path>` - Custom weights path (default: models/LOL_v2_synthetic.pth)
+- `--output <path>` - Output image path (default: input_enhanced.png)
+- `--device cuda|cpu` - Device selection (default: auto)
+
+Export script options:
+- `--weights <path>` - Custom weights path
+- `--input-size H W` - Input size (default: 512 512)
+- `--opset <version>` - ONNX opset version (default: 11)
+- `--simplify` - Run onnxsim after export
+- `--verify` - Verify ONNX output against PyTorch
 
 ### NCNN Conversion Pipeline
 ```bash
@@ -71,10 +86,11 @@ cmake --build . --config Release
 
 | Module | Status | Priority |
 |--------|--------|----------|
-| `models/retinexformer.py` | TODO | P0 |
-| `deploy/export_onnx.py` | TODO | P0 |
+| `models/retinexformer.py` | Done | P0 |
+| `models/archs/retinexformer_arch.py` | Done | P0 |
+| `deploy/export_onnx.py` | Done | P0 |
+| `tests/test_retinexformer.py` | Done | P0 |
 | `deploy/cpp/` (Tiling + ThreadPool + NCNN) | TODO | P0 |
-| `tests/test_retinexformer.py` | TODO | P0 |
 | `isp/` (C++ ISP modules) | TODO | P1 |
 | `archive/models/` | Archived | Reference only |
 
