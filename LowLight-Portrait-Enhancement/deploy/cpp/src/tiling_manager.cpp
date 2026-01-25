@@ -155,27 +155,35 @@ cv::Mat TilingManager::merge(const std::vector<Tile>& tiles, cv::Size original_s
         cv::Mat result_roi = result(tile.roi);
         cv::Mat weight_roi = weight_sum(tile.roi);
 
-        // 累加加权的 tile 数据
-        for (int y = 0; y < tile.roi.height; y++) {
-            for (int x = 0; x < tile.roi.width; x++) {
-                float weight = blend_mask.at<float>(y, x);
-                cv::Vec3f pixel = tile_float.at<cv::Vec3f>(y, x);
+        // 累加加权的 tile 数据 (使用 OpenCV 矩阵运算优化)
+        // 将单通道掩码扩展为三通道
+        std::vector<cv::Mat> mask_channels(3, blend_mask);
+        cv::Mat mask_3ch;
+        cv::merge(mask_channels, mask_3ch);
 
-                result_roi.at<cv::Vec3f>(y, x) += pixel * weight;
-                weight_roi.at<float>(y, x) += weight;
-            }
-        }
+        // 矩阵乘法: tile_float * mask_3ch
+        cv::Mat weighted_tile;
+        cv::multiply(tile_float, mask_3ch, weighted_tile);
+
+        // 累加到结果缓冲区
+        result_roi += weighted_tile;
+        weight_roi += blend_mask;
     }
 
-    // 归一化: result / weight_sum
-    for (int y = 0; y < result.rows; y++) {
-        for (int x = 0; x < result.cols; x++) {
-            float weight = weight_sum.at<float>(y, x);
-            if (weight > 0) {
-                result.at<cv::Vec3f>(y, x) /= weight;
-            }
-        }
+    // 归一化: result / weight_sum (使用 OpenCV 矩阵运算优化)
+    // 将单通道权重扩展为三通道
+    std::vector<cv::Mat> weight_channels(3);
+    cv::split(weight_sum, weight_channels);  // 先 split 以获得正确的通道数
+    for (int c = 0; c < 3; c++) {
+        weight_channels[c] = weight_sum;  // 每个通道都使用相同的权重
     }
+    cv::Mat weight_3ch;
+    cv::merge(weight_channels, weight_3ch);
+
+    // 逐元素除法，避免除零
+    cv::Mat mask = weight_3ch > 0;  // 创建非零掩码
+    cv::divide(result, weight_3ch, result, 1.0, -1);  // 执行除法
+    result.setTo(0, ~mask);  // 将除零位置设为 0
 
     // 转换回 uint8
     cv::Mat result_u8;

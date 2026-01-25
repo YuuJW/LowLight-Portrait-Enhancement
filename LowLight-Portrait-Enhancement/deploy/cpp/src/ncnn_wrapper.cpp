@@ -81,21 +81,20 @@ ncnn::Mat NCNNWrapper::preprocess(const cv::Mat& bgr) {
  * - cv::Mat 使用 HWC 布局 (Height-Width-Channel)
  */
 cv::Mat NCNNWrapper::postprocess(const ncnn::Mat& output) {
-    // 创建浮点数 OpenCV Mat (HWC 布局)
-    cv::Mat result(output.h, output.w, CV_32FC3);
+    // 从 ncnn::Mat (CHW) 转换为 cv::Mat (HWC) + RGB → BGR (使用 OpenCV 矩阵运算优化)
+    std::vector<cv::Mat> channels(3);
 
-    // 从 ncnn::Mat (CHW) 复制数据到 cv::Mat (HWC)
-    // 同时进行 RGB → BGR 转换
+    // 提取三个通道并进行 RGB → BGR 转换
+    // ncnn::Mat 的 channel(c) 返回第 c 个通道的数据指针
+    // c=0 (R) → channels[2] (B), c=1 (G) → channels[1] (G), c=2 (B) → channels[0] (R)
     for (int c = 0; c < 3; c++) {
-        const float* ptr = output.channel(c);  // 获取第 c 个通道的数据指针
-        for (int y = 0; y < output.h; y++) {
-            for (int x = 0; x < output.w; x++) {
-                // [2-c] 实现 RGB → BGR 转换
-                // c=0 (R) → [2] (B), c=1 (G) → [1] (G), c=2 (B) → [0] (R)
-                result.at<cv::Vec3f>(y, x)[2 - c] = ptr[y * output.w + x];
-            }
-        }
+        const float* ptr = output.channel(c);
+        channels[2 - c] = cv::Mat(output.h, output.w, CV_32FC1, const_cast<float*>(ptr)).clone();
     }
+
+    // 合并通道
+    cv::Mat result;
+    cv::merge(channels, result);
 
     // 反归一化: [0,1] → [0,255]
     result *= 255.0f;
@@ -112,27 +111,27 @@ cv::Mat NCNNWrapper::postprocess(const ncnn::Mat& output) {
  * @return 增强后的 tile 图像 (512x512, BGR 格式)
  *
  * 流程:
- * 1. 加锁保证线程安全 (NCNN 的 Net 对象不是线程安全的)
- * 2. 预处理: BGR → RGB, [0,255] → [0,1]
- * 3. 创建 NCNN Extractor 并执行推理
- * 4. 后处理: RGB → BGR, [0,1] → [0,255]
+ * 1. 预处理: BGR → RGB, [0,255] → [0,1]
+ * 2. 创建 NCNN Extractor 并执行推理
+ * 3. 后处理: RGB → BGR, [0,1] → [0,255]
+ *
+ * 线程安全性:
+ * - NCNN 的 Net 对象可以在多线程间共享
+ * - 每次推理创建独立的 Extractor，因此是线程安全的
+ * - 在 Session Pool 中使用时，每个实例独立，无需互斥锁
  *
  * 注意:
- * - 使用 mutex 保证多线程环境下的安全性
  * - 输入输出层名称为 "input" 和 "output" (与 ONNX 导出时一致)
  */
 cv::Mat NCNNWrapper::inference(const cv::Mat& input_tile) {
-    // 加锁保证线程安全
-    // NCNN 的 Net 对象不是线程安全的，需要互斥访问
-    std::lock_guard<std::mutex> lock(mutex_);
-
     // 步骤1: 预处理
     ncnn::Mat in = preprocess(input_tile);
 
     // 步骤2: 创建提取器
-    // Extractor 是 NCNN 的推理接口
+    // Extractor 是 NCNN 的推理接口，每次创建独立的实例
+    // 这使得多个线程可以同时使用同一个 Net 对象进行推理
     ncnn::Extractor ex = net_.create_extractor();
-    ex.set_num_threads(1);  // 单线程推理
+    ex.set_num_threads(1);  // 单线程推理（外部使用线程池管理并发）
 
     // 步骤3: 输入数据
     // "input" 是模型的输入层名称 (与 ONNX 导出时定义的一致)

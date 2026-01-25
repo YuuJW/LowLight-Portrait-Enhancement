@@ -74,13 +74,31 @@ python -m onnxsim model.onnx model_sim.onnx
 ./ncnn2int8 model_opt.param model_opt.bin model_int8.param model_int8.bin model.table
 ```
 
-### C++ Build (reference ISP project)
+### C++ Build
 ```powershell
-cd references/HDR-ISP-main
+cd LowLight-Portrait-Enhancement/deploy/cpp
+
+# Build with ONNX Runtime backend (default)
 mkdir build && cd build
 cmake -G "Visual Studio 17 2022" -A x64 ..
 cmake --build . --config Release
+
+# Build with NCNN backend
+cmake -G "Visual Studio 17 2022" -A x64 -DUSE_ONNXRUNTIME=OFF ..
+cmake --build . --config Release
+
+# Run test
+.\Release\test_engine.exe <input_image> <output_image> <model_path>
 ```
+
+Build options:
+- `-DUSE_ONNXRUNTIME=ON` - Use ONNX Runtime backend (default)
+- `-DUSE_ONNXRUNTIME=OFF` - Use NCNN backend
+
+Prerequisites:
+- OpenCV (set `OpenCV_DIR` in CMakeLists.txt)
+- ONNX Runtime (set `ONNXRUNTIME_DIR` in CMakeLists.txt) OR
+- NCNN (set `ncnn_DIR` in CMakeLists.txt)
 
 ## Implementation Status
 
@@ -90,7 +108,7 @@ cmake --build . --config Release
 | `models/archs/retinexformer_arch.py` | Done | P0 |
 | `deploy/export_onnx.py` | Done | P0 |
 | `tests/test_retinexformer.py` | Done | P0 |
-| `deploy/cpp/` (Tiling + ThreadPool + NCNN) | TODO | P0 |
+| `deploy/cpp/` (Tiling + ThreadPool + ONNX/NCNN) | Done | P0 |
 | `isp/` (C++ ISP modules) | TODO | P1 |
 | `archive/models/` | Archived | Reference only |
 
@@ -104,9 +122,12 @@ cmake --build . --config Release
 
 ### C++ Inference Engine Design
 1. **Tiling**: Split large images (4K/12MP) into 512x512 tiles with 32px overlap
-2. **ThreadPool**: C++11 thread pool for parallel tile inference (see `references/ThreadPool/ThreadPool.h`)
+2. **ThreadPool**: C++11 thread pool for parallel tile inference (`deploy/cpp/include/thread_pool.h`)
 3. **Overlap Blending**: Linear alpha blending in overlap regions
-4. **NCNN Wrapper**: Per-tile inference with optimized memory management
+4. **Backend Abstraction**: Supports both ONNX Runtime and NCNN backends
+   - `onnx_wrapper.cpp` - ONNX Runtime inference
+   - `ncnn_wrapper.cpp` - NCNN inference
+5. **Engine**: `retinexformer_engine.cpp` orchestrates tiling + threading + inference
 
 ### Why NCNN (not TensorRT)
 Mobile phones use ARM CPUs (no NVIDIA GPU). NCNN is optimized for ARM NEON. TensorRT only works on NVIDIA hardware.
@@ -114,10 +135,16 @@ Mobile phones use ARM CPUs (no NVIDIA GPU). NCNN is optimized for ARM NEON. Tens
 ## Key Directories
 
 - `LowLight-Portrait-Enhancement/` - Main project implementation
+  - `models/` - PyTorch model definitions + pre-trained weights
+  - `deploy/` - Deployment pipeline (ONNX export + C++ engine)
+  - `deploy/cpp/` - C++ inference engine with tiling support
+  - `tests/` - Python inference tests
+  - `scripts/` - Setup and utility scripts
 - `references/Retinexformer-master/` - Official RetinexFormer code (cloned by setup.py)
-- `references/ThreadPool/` - C++11 thread pool header (copy directly for use)
+- `references/ThreadPool/` - C++11 thread pool reference
 - `references/HDR-ISP-main/` - C++ ISP reference implementation
 - `references/ncnn/` - NCNN framework reference
+- `references/onnxruntime/` - ONNX Runtime binaries
 - `docs/` - Chinese documentation (environment setup, ISP basics, NCNN deployment)
 
 ## Archived Code

@@ -25,6 +25,7 @@ if(USE_ONNXRUNTIME)
 
     set(SOURCES
         src/onnx_wrapper.cpp
+        src/session_pool.cpp
         src/tiling_manager.cpp
         src/retinexformer_engine.cpp
     )
@@ -44,6 +45,7 @@ else()
 
     set(SOURCES
         src/ncnn_wrapper.cpp
+        src/session_pool.cpp
         src/tiling_manager.cpp
         src/retinexformer_engine.cpp
     )
