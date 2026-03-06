@@ -9,9 +9,8 @@
 #include "retinexformer_engine.h"
 #include <iostream>
 
-#ifdef USE_ONNXRUNTIME
 /**
- * @brief 构造函数 - ONNX Runtime 后端
+ * @brief 构造函数
  * @param model_path ONNX 模型文件路径 (.onnx)
  * @param num_threads 线程池大小（默认 4）
  * @param session_pool_size 会话池大小（默认等于 num_threads）
@@ -31,7 +30,7 @@ RetinexFormerEngine::RetinexFormerEngine(
     int num_threads,
     int session_pool_size
 ) {
-    std::cout << "Initializing RetinexFormerEngine (ONNX Runtime backend)..." << std::endl;
+    std::cout << "Initializing RetinexFormerEngine..." << std::endl;
 
     // 如果未指定 session_pool_size，默认等于 num_threads
     if (session_pool_size <= 0) {
@@ -51,52 +50,6 @@ RetinexFormerEngine::RetinexFormerEngine(
     std::cout << "RetinexFormerEngine initialized with " << num_threads << " threads and "
               << session_pool_size << " sessions" << std::endl;
 }
-#else
-/**
- * @brief 构造函数 - NCNN 后端
- * @param param_path NCNN 参数文件路径 (.param)
- * @param bin_path NCNN 权重文件路径 (.bin)
- * @param num_threads 线程池大小（默认 4）
- * @param session_pool_size 会话池大小（默认等于 num_threads）
- *
- * 初始化流程:
- * 1. 创建 SessionPool（管理多个 NCNN 推理会话）
- * 2. 创建 TilingManager (512x512 tiles, 32px overlap)
- * 3. 创建线程池用于并行处理 tiles
- *
- * 注意:
- * - NCNN 后端适用于 ARM CPU（移动端部署）
- * - session_pool_size 建议等于 num_threads，确保每个线程有独立的会话
- * - tile_size 和 overlap 当前是硬编码的
- * - 后续可以通过 EngineConfig 进行配置
- */
-RetinexFormerEngine::RetinexFormerEngine(
-    const std::string& param_path,
-    const std::string& bin_path,
-    int num_threads,
-    int session_pool_size
-) {
-    std::cout << "Initializing RetinexFormerEngine (NCNN backend)..." << std::endl;
-
-    // 如果未指定 session_pool_size，默认等于 num_threads
-    if (session_pool_size <= 0) {
-        session_pool_size = num_threads;
-    }
-
-    // 1. 创建 Session Pool（管理多个推理会话）
-    session_pool_ = std::make_unique<SessionPool>(param_path, bin_path, session_pool_size);
-
-    // 2. 创建 Tiling 管理器 (512x512 tiles, 32px overlap)
-    // TODO: 从 EngineConfig 读取配置
-    tiling_manager_ = std::make_unique<TilingManager>(512, 32);
-
-    // 3. 创建线程池
-    thread_pool_ = std::make_unique<ThreadPool>(num_threads);
-
-    std::cout << "RetinexFormerEngine initialized with " << num_threads << " threads and "
-              << session_pool_size << " sessions" << std::endl;
-}
-#endif
 
 /**
  * @brief 增强图像（主接口）

@@ -3,7 +3,7 @@
  * @brief RetinexFormer 推理引擎
  *
  * 协调推理后端、TilingManager 和 ThreadPool，提供简单的图像增强接口
- * 支持 ONNX Runtime 和 NCNN 两种后端
+ * 使用 ONNX Runtime 作为推理后端
  */
 
 #ifndef RETINEXFORMER_ENGINE_H
@@ -37,7 +37,6 @@
  *
  * 使用示例:
  * @code
- * // ONNX Runtime 后端
  * RetinexFormerEngine engine("model.onnx", 4);
  * cv::Mat input = cv::imread("low_light.png");
  * cv::Mat output = engine.enhance(input);
@@ -46,9 +45,8 @@
  */
 class RetinexFormerEngine {
 public:
-#ifdef USE_ONNXRUNTIME
     /**
-     * @brief 构造函数 - ONNX Runtime 后端
+     * @brief 构造函数
      * @param model_path ONNX 模型文件路径 (.onnx)
      * @param num_threads 线程池大小（默认 4，建议设置为 CPU 核心数）
      * @param session_pool_size 会话池大小（默认等于 num_threads）
@@ -64,28 +62,6 @@ public:
         int num_threads = 4,
         int session_pool_size = -1  // -1 表示等于 num_threads
     );
-#else
-    /**
-     * @brief 构造函数 - NCNN 后端
-     * @param param_path NCNN 参数文件路径 (.param)
-     * @param bin_path NCNN 权重文件路径 (.bin)
-     * @param num_threads 线程池大小（默认 4，建议设置为 CPU 核心数）
-     * @param session_pool_size 会话池大小（默认等于 num_threads）
-     *
-     * 说明:
-     * - 自动加载 NCNN 模型并创建会话池
-     * - 创建 TilingManager (512x512 tiles, 32px overlap)
-     * - 创建线程池用于并行处理
-     * - NCNN 后端适用于 ARM CPU（移动端部署）
-     * - session_pool_size 建议等于 num_threads，确保每个线程有独立的会话
-     */
-    RetinexFormerEngine(
-        const std::string& param_path,
-        const std::string& bin_path,
-        int num_threads = 4,
-        int session_pool_size = -1  // -1 表示等于 num_threads
-    );
-#endif
 
     /**
      * @brief 增强图像（主接口）

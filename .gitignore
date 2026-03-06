@@ -4,21 +4,12 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints
 
 # PyTorch
 *.pth
@@ -28,53 +19,59 @@ wheels/
 # ONNX
 *.onnx
 
-# NCNN models
+# NCNN
 *.param
 *.bin
 
-# Virtual environments
-venv/
-ENV/
-.venv/
+# Data
+data/
+datasets/
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tif
+*.tiff
+
+# Models
+models/*.pth
+deploy/models/
+
+# C++ Build
+deploy/cpp/build/
+deploy/cpp/Release/
+deploy/cpp/Debug/
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.obj
+*.lib
+*.a
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.vcxproj
+*.vcxproj.filters
+*.sln
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+tmpclaude-*
 
-# Jupyter
-.ipynb_checkpoints/
+# References (外部依赖)
+references/
 
 # Logs
 *.log
-logs/
-
-# Data folders (large files)
-data/
-datasets/
-
-# Build outputs
-*.exe
-*.dll
-*.obj
-*.o
-*.a
-*.lib
-CMakeCache.txt
-CMakeFiles/
-cmake_install.cmake
-Makefile
-
-# Temporary files
-*.tmp
-*.temp
-nul
-
-# External repositories (cloned references)
-references/Retinexformer-master/
-references/Retinexformer/

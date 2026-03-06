@@ -3,14 +3,11 @@
 #include "retinexformer_engine.h"
 
 /**
- * @brief Test program
+ * @brief Test program for RetinexFormer C++ Engine
  *
- * Usage (ONNX Runtime): test_engine <onnx_path> <image_path>
- * Usage (NCNN):         test_engine <param_path> <bin_path> <image_path>
+ * Usage: test_engine <onnx_path> <image_path>
  */
 int main(int argc, char** argv) {
-#ifdef USE_ONNXRUNTIME
-    // ONNX Runtime mode: 2 arguments
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0]
                   << " <model.onnx> <image>" << std::endl;
@@ -22,28 +19,9 @@ int main(int argc, char** argv) {
     std::string model_path = argv[1];
     std::string image_path = argv[2];
 
-    std::cout << "=== RetinexFormer C++ Engine Test (ONNX Runtime) ===" << std::endl;
+    std::cout << "=== RetinexFormer C++ Engine Test ===" << std::endl;
     std::cout << "Model: " << model_path << std::endl;
     std::cout << "Image: " << image_path << std::endl;
-#else
-    // NCNN mode: 3 arguments
-    if (argc != 4) {
-        std::cerr << "Usage: " << argv[0]
-                  << " <param> <bin> <image>" << std::endl;
-        std::cerr << "\nExample:" << std::endl;
-        std::cerr << "  " << argv[0] << " model.param model.bin input.png" << std::endl;
-        return -1;
-    }
-
-    std::string param_path = argv[1];
-    std::string bin_path = argv[2];
-    std::string image_path = argv[3];
-
-    std::cout << "=== RetinexFormer C++ Engine Test (NCNN) ===" << std::endl;
-    std::cout << "Param: " << param_path << std::endl;
-    std::cout << "Model: " << bin_path << std::endl;
-    std::cout << "Image: " << image_path << std::endl;
-#endif
     std::cout << std::endl;
 
     // Step 1: Load image
@@ -59,11 +37,7 @@ int main(int argc, char** argv) {
     // Step 2: Create engine
     std::cout << "Creating RetinexFormer engine..." << std::endl;
     try {
-#ifdef USE_ONNXRUNTIME
         RetinexFormerEngine engine(model_path, 4);
-#else
-        RetinexFormerEngine engine(param_path, bin_path, 4);
-#endif
         std::cout << std::endl;
 
         // Step 3: Run inference
