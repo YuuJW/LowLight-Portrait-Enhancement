@@ -33,6 +33,10 @@ def parse_args():
                         help='Simplify ONNX model with onnxsim')
     parser.add_argument('--verify', action='store_true',
                         help='Verify ONNX output against PyTorch')
+    parser.add_argument('--check-model', action='store_true',
+                        help='Check ONNX model validity')
+    parser.add_argument('--show-info', action='store_true',
+                        help='Show detailed ONNX model information')
     return parser.parse_args()
 
 
@@ -114,11 +118,85 @@ def verify_onnx(pytorch_model, onnx_path, input_size, device):
     print(f'  Max diff: {max_diff:.6f}')
 
     if diff < 1e-4:
-        print('  Status: PASSED')
+        print('  Status: ✓ PASSED')
         return True
     else:
-        print('  Status: FAILED (diff too large)')
+        print('  Status: ✗ FAILED (diff too large)')
         return False
+
+
+def check_onnx_model(onnx_path):
+    """Check ONNX model validity."""
+    try:
+        import onnx
+    except ImportError:
+        print('Warning: onnx not installed. Run: pip install onnx')
+        return False
+
+    print('\nChecking ONNX model...')
+    try:
+        model = onnx.load(str(onnx_path))
+        onnx.checker.check_model(model)
+        print('  Status: ✓ Model is valid')
+        return True
+    except Exception as e:
+        print(f'  Status: ✗ Model check failed: {e}')
+        return False
+
+
+def show_model_info(onnx_path):
+    """Show detailed ONNX model information."""
+    try:
+        import onnx
+    except ImportError:
+        print('Warning: onnx not installed')
+        return
+
+    print('\n' + '='*60)
+    print('ONNX Model Information')
+    print('='*60)
+
+    model = onnx.load(str(onnx_path))
+
+    # Basic info
+    print(f'\nProducer: {model.producer_name} {model.producer_version}')
+    print(f'IR Version: {model.ir_version}')
+    print(f'Opset Version: {model.opset_import[0].version}')
+
+    # Graph info
+    graph = model.graph
+    print(f'\nGraph Name: {graph.name}')
+
+    # Inputs
+    print(f'\nInputs ({len(graph.input)}):')
+    for inp in graph.input:
+        shape = [dim.dim_value for dim in inp.type.tensor_type.shape.dim]
+        dtype = inp.type.tensor_type.elem_type
+        print(f'  - {inp.name}: {shape} (type: {dtype})')
+
+    # Outputs
+    print(f'\nOutputs ({len(graph.output)}):')
+    for out in graph.output:
+        shape = [dim.dim_value for dim in out.type.tensor_type.shape.dim]
+        dtype = out.type.tensor_type.elem_type
+        print(f'  - {out.name}: {shape} (type: {dtype})')
+
+    # Nodes
+    print(f'\nNodes: {len(graph.node)}')
+    op_types = {}
+    for node in graph.node:
+        op_types[node.op_type] = op_types.get(node.op_type, 0) + 1
+
+    print('\nOperator Statistics:')
+    for op_type, count in sorted(op_types.items(), key=lambda x: x[1], reverse=True)[:10]:
+        print(f'  {op_type}: {count}')
+
+    # Model size
+    import os
+    size_mb = os.path.getsize(onnx_path) / (1024 * 1024)
+    print(f'\nModel Size: {size_mb:.2f} MB')
+
+    print('='*60)
 
 
 def main():
@@ -162,6 +240,14 @@ def main():
     # Verify
     if args.verify:
         verify_onnx(model, output_path, args.input_size, 'cpu')
+
+    # Check model
+    if args.check_model:
+        check_onnx_model(output_path)
+
+    # Show info
+    if args.show_info:
+        show_model_info(output_path)
 
     print('\nDone!')
 
