@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python deploy/export_onnx.py:*)"
-    ]
-  }
-}

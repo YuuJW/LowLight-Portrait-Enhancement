@@ -1,33 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl:*)",
-      "Bash(gh search repos:*)",
-      "Bash(git clone:*)",
-      "Bash(dir:*)",
-      "Bash(powershell -Command \"Get-ChildItem -Path ''LowLight-Portrait-Enhancement'' -Recurse -ErrorAction SilentlyContinue | Select-Object FullName\")",
-      "Bash(powershell -Command \"Get-ChildItem -Path ''D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\models'' -File\")",
-      "Bash(powershell -Command \"Get-ChildItem -Path ''D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\train'' -File\")",
-      "Bash(powershell -Command:*)",
-      "Bash(ls -la \"D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\models\"\" 2>&1 || echo \"Directory may be empty or does not exist \")",
-      "Bash(ls:*)",
-      "Bash(test -d \"D:\\\\yujw_Projects\\\\img_pro\\\\LowLight-Portrait-Enhancement\\\\models\")",
-      "Bash(test:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(timeout 10 curl:*)",
-      "Bash(pip install:*)",
-      "Bash(python tests/test_retinexformer.py:*)",
-      "Bash(pip show:*)",
-      "Bash(findstr:*)",
-      "Bash(where:*)",
-      "Bash(cmake --version:*)",
-      "Bash(conda activate:*)",
-      "Bash(\"d:/yujw_Projects/img_pro/references/ncnn-tools/ncnn-20240820-windows-vs2022/x64/bin/onnx2ncnn.exe\" \"d:/yujw_Projects/img_pro/LowLight-Portrait-Enhancement/deploy/models/retinexformer.onnx\" \"d:/yujw_Projects/img_pro/LowLight-Portrait-Enhancement/deploy/models/retinexformer.param\" \"d:/yujw_Projects/img_pro/LowLight-Portrait-Enhancement/deploy/models/retinexformer.bin\")",
-      "Bash(python prepare_calibration.py:*)",
-      "Bash(\"d:/yujw_Projects/img_pro/references/ncnn-tools/ncnn-20240820-windows-vs2022/x64/bin/ncnn2table.exe\" models/retinexformer_opt.param models/retinexformer_opt.bin calibration/ models/retinexformer.table mean=[0,0,0] norm=[1,1,1] shape=[512,512,3] pixel=BGR thread=4 method=kl)",
-      "Bash(cmake:*)",
-      "Bash(powershell.exe -Command \"& { Set-Location ''d:/yujw_Projects/img_pro/LowLight-Portrait-Enhancement/deploy/cpp/build/Release''; $env:PATH = ''D:/Softwares/OpenCV/opencv/build/x64/vc16/bin;'' + $env:PATH; ./test_engine.exe ''d:/yujw_Projects/img_pro/LowLight-Portrait-Enhancement/deploy/models/retinexformer_opt.param'' ''d:/yujw_Projects/img_pro/LowLight-Portrait-Enhancement/deploy/models/retinexformer_opt.bin'' ''d:/yujw_Projects/img_pro/LowLight-Portrait-Enhancement/data/LOL/lol_dataset/eval15/low/1.png'' }\")"
+      "Bash(du:*)"
     ]
   }
 }
