@@ -118,10 +118,10 @@ def verify_onnx(pytorch_model, onnx_path, input_size, device):
     print(f'  Max diff: {max_diff:.6f}')
 
     if diff < 1e-4:
-        print('  Status: ✓ PASSED')
+        print('  Status: PASSED')
         return True
     else:
-        print('  Status: ✗ FAILED (diff too large)')
+        print('  Status: FAILED (diff too large)')
         return False
 
 
