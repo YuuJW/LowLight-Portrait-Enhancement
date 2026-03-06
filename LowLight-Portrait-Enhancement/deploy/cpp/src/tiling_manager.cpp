@@ -6,11 +6,14 @@
  * @brief 构造函数
  * @param tile_size 单个 tile 的尺寸 (默认 512x512)
  * @param overlap 相邻 tiles 之间的重叠像素数 (默认 32px)
+ * @param verbose 是否输出详细日志 (默认 true)
  */
-TilingManager::TilingManager(int tile_size, int overlap)
-    : tile_size_(tile_size), overlap_(overlap) {
-    std::cout << "TilingManager initialized: tile_size=" << tile_size_
-              << ", overlap=" << overlap_ << std::endl;
+TilingManager::TilingManager(int tile_size, int overlap, bool verbose)
+    : tile_size_(tile_size), overlap_(overlap), verbose_(verbose) {
+    if (verbose_) {
+        std::cout << "TilingManager initialized: tile_size=" << tile_size_
+                  << ", overlap=" << overlap_ << std::endl;
+    }
 }
 
 /**
@@ -35,8 +38,10 @@ std::vector<Tile> TilingManager::split(const cv::Mat& image) {
     int num_x = std::ceil((float)(image.cols - overlap_) / stride);
     int num_y = std::ceil((float)(image.rows - overlap_) / stride);
 
-    std::cout << "Splitting image " << image.cols << "x" << image.rows
-              << " into " << num_x << "x" << num_y << " tiles" << std::endl;
+    if (verbose_) {
+        std::cout << "Splitting image " << image.cols << "x" << image.rows
+                  << " into " << num_x << "x" << num_y << " tiles" << std::endl;
+    }
 
     // 遍历每个 tile 位置
     for (int row = 0; row < num_y; row++) {
@@ -140,7 +145,9 @@ cv::Mat TilingManager::merge(const std::vector<Tile>& tiles, cv::Size original_s
     cv::Mat result = cv::Mat::zeros(original_size, CV_32FC3);
     cv::Mat weight_sum = cv::Mat::zeros(original_size, CV_32FC1);
 
-    std::cout << "Merging " << tiles.size() << " tiles..." << std::endl;
+    if (verbose_) {
+        std::cout << "Merging " << tiles.size() << " tiles..." << std::endl;
+    }
 
     // 遍历每个 tile
     for (const auto& tile : tiles) {
@@ -189,6 +196,8 @@ cv::Mat TilingManager::merge(const std::vector<Tile>& tiles, cv::Size original_s
     cv::Mat result_u8;
     result.convertTo(result_u8, CV_8UC3);
 
-    std::cout << "Merge completed" << std::endl;
+    if (verbose_) {
+        std::cout << "Merge completed" << std::endl;
+    }
     return result_u8;
 }

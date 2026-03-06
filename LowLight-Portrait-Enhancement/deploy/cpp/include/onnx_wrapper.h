@@ -40,6 +40,7 @@ public:
     /**
      * @brief 构造函数 - 加载 ONNX 模型
      * @param model_path ONNX 模型文件路径 (.onnx)
+     * @param verbose 是否输出详细日志（默认 true）
      * @throws std::runtime_error 如果模型加载失败
      *
      * 说明:
@@ -47,7 +48,7 @@ public:
      * - 自动获取模型的输入输出信息
      * - Windows 平台自动处理宽字符路径
      */
-    OnnxWrapper(const std::string& model_path);
+    OnnxWrapper(const std::string& model_path, bool verbose = true);
 
     /**
      * @brief 执行单个 tile 的推理
@@ -104,6 +105,7 @@ private:
     std::string output_name_;                   ///< 输出层名称 (例如: "output")
     std::vector<int64_t> input_shape_;          ///< 输入张量形状 (例如: [1, 3, 512, 512])
     std::vector<int64_t> output_shape_;         ///< 输出张量形状 (例如: [1, 3, 512, 512])
+    bool verbose_;                              ///< 是否输出详细日志
 };
 
 #endif // ONNX_WRAPPER_H

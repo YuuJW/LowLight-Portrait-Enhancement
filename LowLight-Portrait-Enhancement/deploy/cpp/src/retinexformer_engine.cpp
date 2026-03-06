@@ -8,56 +8,85 @@
 
 #include "retinexformer_engine.h"
 #include <iostream>
+#include <chrono>
 
 /**
- * @brief 构造函数
+ * @brief 构造函数（使用配置对象）
+ * @param model_path ONNX 模型文件路径 (.onnx)
+ * @param config 引擎配置（tile大小、线程数等）
+ *
+ * 初始化流程:
+ * 1. 创建 SessionPool（管理多个 ONNX Runtime 推理会话）
+ * 2. 创建 TilingManager（使用配置的 tile_size 和 overlap）
+ * 3. 创建线程池用于并行处理 tiles
+ */
+RetinexFormerEngine::RetinexFormerEngine(
+    const std::string& model_path,
+    const EngineConfig& config
+) : config_(config) {
+    log("Initializing RetinexFormerEngine...");
+
+    // 1. 创建 Session Pool（管理多个推理会话）
+    session_pool_ = std::make_unique<SessionPool>(
+        model_path,
+        config_.session_pool_size,
+        config_.verbose
+    );
+
+    // 2. 创建 Tiling 管理器（使用配置的参数）
+    tiling_manager_ = std::make_unique<TilingManager>(
+        config_.tile_size,
+        config_.overlap,
+        config_.verbose
+    );
+
+    // 3. 创建线程池
+    thread_pool_ = std::make_unique<ThreadPool>(config_.num_threads);
+
+    log("RetinexFormerEngine initialized with " +
+        std::to_string(config_.num_threads) + " threads and " +
+        std::to_string(config_.session_pool_size) + " sessions");
+}
+
+/**
+ * @brief 构造函数（兼容旧接口）
  * @param model_path ONNX 模型文件路径 (.onnx)
  * @param num_threads 线程池大小（默认 4）
  * @param session_pool_size 会话池大小（默认等于 num_threads）
  *
- * 初始化流程:
- * 1. 创建 SessionPool（管理多个 ONNX Runtime 推理会话）
- * 2. 创建 TilingManager (512x512 tiles, 32px overlap)
- * 3. 创建线程池用于并行处理 tiles
- *
- * 注意:
- * - session_pool_size 建议等于 num_threads，确保每个线程有独立的会话
- * - tile_size 和 overlap 当前是硬编码的
- * - 后续可以通过 EngineConfig 进行配置
+ * 说明:
+ * - 保持向后兼容
+ * - 内部转换为 EngineConfig 并委托给主构造函数
  */
 RetinexFormerEngine::RetinexFormerEngine(
     const std::string& model_path,
     int num_threads,
     int session_pool_size
+) : RetinexFormerEngine(
+    model_path,
+    EngineConfig(512, 32, num_threads, session_pool_size, true)
 ) {
-    std::cout << "Initializing RetinexFormerEngine..." << std::endl;
+    // 委托构造函数，无需额外代码
+}
 
-    // 如果未指定 session_pool_size，默认等于 num_threads
-    if (session_pool_size <= 0) {
-        session_pool_size = num_threads;
+/**
+ * @brief 条件日志输出辅助方法
+ * @param msg 日志消息
+ */
+void RetinexFormerEngine::log(const std::string& msg) {
+    if (config_.verbose) {
+        std::cout << msg << std::endl;
     }
-
-    // 1. 创建 Session Pool（管理多个推理会话）
-    session_pool_ = std::make_unique<SessionPool>(model_path, session_pool_size);
-
-    // 2. 创建 Tiling 管理器 (512x512 tiles, 32px overlap)
-    // TODO: 从 EngineConfig 读取配置
-    tiling_manager_ = std::make_unique<TilingManager>(512, 32);
-
-    // 3. 创建线程池
-    thread_pool_ = std::make_unique<ThreadPool>(num_threads);
-
-    std::cout << "RetinexFormerEngine initialized with " << num_threads << " threads and "
-              << session_pool_size << " sessions" << std::endl;
 }
 
 /**
  * @brief 增强图像（主接口）
  * @param input 输入的暗光图像 (BGR 格式)
+ * @param stats 可选的性能统计输出参数
  * @return 增强后的图像 (BGR 格式)
  *
  * 处理流程:
- * 1. 使用 TilingManager 将大图分割为 512x512 的 tiles
+ * 1. 使用 TilingManager 将大图分割为 tiles
  * 2. 使用 ThreadPool 并行处理所有 tiles
  * 3. 每个线程从 SessionPool 获取独立的推理会话
  * 4. 收集所有推理结果
@@ -67,24 +96,26 @@ RetinexFormerEngine::RetinexFormerEngine(
  * - 使用 Session Pool 实现真正的并行推理
  * - 每个线程使用独立的推理会话，无需互斥锁
  * - 4核CPU 上速度提升 3-4 倍，CPU 利用率接近 100%
- *
- * 注意:
- * - 支持任意尺寸的输入图像
- * - 小于 512x512 的图像会被填充后推理
- * - 大于 512x512 的图像会被分割为多个 tiles
  */
-cv::Mat RetinexFormerEngine::enhance(const cv::Mat& input) {
-    std::cout << "\n=== Starting enhancement ===" << std::endl;
-    std::cout << "Input size: " << input.cols << "x" << input.rows << std::endl;
+cv::Mat RetinexFormerEngine::enhance(const cv::Mat& input, PerformanceStats* stats) {
+    using Clock = std::chrono::high_resolution_clock;
+    using Ms = std::chrono::duration<double, std::milli>;
+
+    auto total_start = Clock::now();
+
+    log("\n=== Starting enhancement ===");
+    log("Input size: " + std::to_string(input.cols) + "x" + std::to_string(input.rows));
 
     // 步骤1: 分割为 tiles
-    // TilingManager 会自动处理边界情况（填充、重叠区域）
+    auto tiling_start = Clock::now();
     auto tiles = tiling_manager_->split(input);
-    std::cout << "Split into " << tiles.size() << " tiles" << std::endl;
+    auto tiling_end = Clock::now();
+    double tiling_time = std::chrono::duration_cast<Ms>(tiling_end - tiling_start).count();
+
+    log("Split into " + std::to_string(tiles.size()) + " tiles");
 
     // 步骤2: 并行推理（使用 Session Pool）
-    // 将每个 tile 提交到线程池进行推理
-    // 每个线程从 SessionPool 获取独立的推理会话，实现真正的并行
+    auto inference_start = Clock::now();
     std::vector<std::future<cv::Mat>> futures;
     for (auto& tile : tiles) {
         futures.push_back(
@@ -102,20 +133,36 @@ cv::Mat RetinexFormerEngine::enhance(const cv::Mat& input) {
             })
         );
     }
-    std::cout << "Submitted " << futures.size() << " inference tasks" << std::endl;
+    log("Submitted " + std::to_string(futures.size()) + " inference tasks");
 
     // 步骤3: 收集推理结果
-    // 等待所有 tile 推理完成
-    std::cout << "Waiting for inference results..." << std::endl;
+    log("Waiting for inference results...");
     for (size_t i = 0; i < tiles.size(); i++) {
         tiles[i].data = futures[i].get();
     }
-    std::cout << "All inference tasks completed" << std::endl;
+    auto inference_end = Clock::now();
+    double inference_time = std::chrono::duration_cast<Ms>(inference_end - inference_start).count();
+
+    log("All inference tasks completed");
 
     // 步骤4: 融合 tiles
-    // TilingManager 会在重叠区域进行线性融合，消除边界伪影
+    auto merging_start = Clock::now();
     cv::Mat result = tiling_manager_->merge(tiles, input.size());
+    auto merging_end = Clock::now();
+    double merging_time = std::chrono::duration_cast<Ms>(merging_end - merging_start).count();
 
-    std::cout << "=== Enhancement completed ===" << std::endl;
+    auto total_end = Clock::now();
+    double total_time = std::chrono::duration_cast<Ms>(total_end - total_start).count();
+
+    // 填充性能统计
+    if (stats != nullptr) {
+        stats->tiling_time_ms = tiling_time;
+        stats->inference_time_ms = inference_time;
+        stats->merging_time_ms = merging_time;
+        stats->total_time_ms = total_time;
+        stats->num_tiles = static_cast<int>(tiles.size());
+    }
+
+    log("=== Enhancement completed ===");
     return result;
 }

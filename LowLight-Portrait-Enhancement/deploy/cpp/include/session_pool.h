@@ -56,13 +56,14 @@ public:
      * @brief 构造函数
      * @param model_path ONNX 模型文件路径
      * @param pool_size 会话池大小（建议等于线程数）
+     * @param verbose 是否输出详细日志（默认 true）
      *
      * 说明:
      * - 创建 pool_size 个独立的 OnnxWrapper 实例
      * - 每个实例有独立的 Ort::Session
      * - 所有实例共享相同的模型权重（ONNX Runtime 内部优化）
      */
-    SessionPool(const std::string& model_path, size_t pool_size);
+    SessionPool(const std::string& model_path, size_t pool_size, bool verbose = true);
 
     /**
      * @brief 析构函数
@@ -118,6 +119,7 @@ private:
     std::mutex mutex_;                  ///< 保护空闲队列的互斥锁
     std::condition_variable condition_; ///< 用于等待空闲会话的条件变量
     size_t pool_size_;                  ///< 池大小
+    bool verbose_;                      ///< 是否输出详细日志
 };
 
 #endif // SESSION_POOL_H

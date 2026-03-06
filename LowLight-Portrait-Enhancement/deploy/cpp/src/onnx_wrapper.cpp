@@ -12,6 +12,7 @@
 /**
  * @brief 构造函数 - 初始化 ONNX Runtime 推理引擎
  * @param model_path ONNX 模型文件路径 (.onnx)
+ * @param verbose 是否输出详细日志 (默认 true)
  * @throws std::runtime_error 如果模型加载失败
  *
  * 说明:
@@ -19,8 +20,8 @@
  * - 启用所有图优化 (ORT_ENABLE_ALL) 以提升推理性能
  * - 自动获取模型的输入输出信息（名称、形状）
  */
-OnnxWrapper::OnnxWrapper(const std::string& model_path)
-    : env_(ORT_LOGGING_LEVEL_WARNING, "RetinexFormer") {
+OnnxWrapper::OnnxWrapper(const std::string& model_path, bool verbose)
+    : env_(ORT_LOGGING_LEVEL_WARNING, "RetinexFormer"), verbose_(verbose) {
 
     // 配置 Session 选项
     // SetIntraOpNumThreads(1): 单线程推理，避免与外部线程池冲突
@@ -29,7 +30,9 @@ OnnxWrapper::OnnxWrapper(const std::string& model_path)
     session_options_.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
 
     // 加载 ONNX 模型
-    std::cout << "Loading ONNX model: " << model_path << std::endl;
+    if (verbose_) {
+        std::cout << "Loading ONNX model: " << model_path << std::endl;
+    }
 
     // Windows 平台需要使用宽字符路径
 #ifdef _WIN32
@@ -57,20 +60,22 @@ OnnxWrapper::OnnxWrapper(const std::string& model_path)
     Ort::AllocatedStringPtr output_name_ptr = session_->GetOutputNameAllocated(0, allocator_);
     output_name_ = output_name_ptr.get();
 
-    std::cout << "ONNX model loaded successfully" << std::endl;
-    std::cout << "  Input: " << input_name_ << " [";
-    for (size_t i = 0; i < input_shape_.size(); ++i) {
-        std::cout << input_shape_[i];
-        if (i < input_shape_.size() - 1) std::cout << ", ";
-    }
-    std::cout << "]" << std::endl;
+    if (verbose_) {
+        std::cout << "ONNX model loaded successfully" << std::endl;
+        std::cout << "  Input: " << input_name_ << " [";
+        for (size_t i = 0; i < input_shape_.size(); ++i) {
+            std::cout << input_shape_[i];
+            if (i < input_shape_.size() - 1) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
 
-    std::cout << "  Output: " << output_name_ << " [";
-    for (size_t i = 0; i < output_shape_.size(); ++i) {
-        std::cout << output_shape_[i];
-        if (i < output_shape_.size() - 1) std::cout << ", ";
+        std::cout << "  Output: " << output_name_ << " [";
+        for (size_t i = 0; i < output_shape_.size(); ++i) {
+            std::cout << output_shape_[i];
+            if (i < output_shape_.size() - 1) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
     }
-    std::cout << "]" << std::endl;
 }
 
 /**

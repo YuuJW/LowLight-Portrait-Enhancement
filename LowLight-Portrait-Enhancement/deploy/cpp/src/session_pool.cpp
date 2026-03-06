@@ -14,18 +14,22 @@
  * 创建多个独立的 OnnxWrapper 实例
  * 每个实例有独立的 Ort::Session，可以并行执行推理
  */
-SessionPool::SessionPool(const std::string& model_path, size_t pool_size)
-    : pool_size_(pool_size) {
+SessionPool::SessionPool(const std::string& model_path, size_t pool_size, bool verbose)
+    : pool_size_(pool_size), verbose_(verbose) {
 
-    std::cout << "Initializing SessionPool with " << pool_size << " sessions..." << std::endl;
+    if (verbose_) {
+        std::cout << "Initializing SessionPool with " << pool_size << " sessions..." << std::endl;
+    }
 
     // 创建 pool_size 个推理会话
     for (size_t i = 0; i < pool_size; ++i) {
-        sessions_.push_back(std::make_unique<OnnxWrapper>(model_path));
+        sessions_.push_back(std::make_unique<OnnxWrapper>(model_path, verbose));
         available_.push(sessions_.back().get());
     }
 
-    std::cout << "SessionPool initialized successfully" << std::endl;
+    if (verbose_) {
+        std::cout << "SessionPool initialized successfully" << std::endl;
+    }
 }
 
 /**
@@ -69,7 +73,9 @@ void SessionPool::release(OnnxWrapper* session) {
  * 等待所有会话归还，然后释放资源
  */
 SessionPool::~SessionPool() {
-    std::cout << "Destroying SessionPool..." << std::endl;
+    if (verbose_) {
+        std::cout << "Destroying SessionPool..." << std::endl;
+    }
 
     // 等待所有会话归还
     std::unique_lock<std::mutex> lock(mutex_);
@@ -77,5 +83,7 @@ SessionPool::~SessionPool() {
         return available_.size() == pool_size_;
     });
 
-    std::cout << "SessionPool destroyed" << std::endl;
+    if (verbose_) {
+        std::cout << "SessionPool destroyed" << std::endl;
+    }
 }

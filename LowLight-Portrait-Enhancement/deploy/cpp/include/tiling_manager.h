@@ -50,13 +50,14 @@ public:
      * @brief 构造函数
      * @param tile_size 单个 tile 的尺寸（正方形边长，默认 512）
      * @param overlap 相邻 tiles 之间的重叠像素数（默认 32）
+     * @param verbose 是否输出详细日志（默认 true）
      *
      * 说明:
      * - tile_size 应与模型训练尺寸一致（RetinexFormer 使用 512）
      * - overlap 越大，边界伪影越少，但计算量越大
      * - 推荐 overlap = tile_size / 16 (例如 512/16 = 32)
      */
-    TilingManager(int tile_size = 512, int overlap = 32);
+    TilingManager(int tile_size = 512, int overlap = 32, bool verbose = true);
 
     /**
      * @brief 将大图分割为多个 tiles
@@ -99,6 +100,7 @@ public:
 private:
     int tile_size_;     ///< Tile 尺寸（正方形边长）
     int overlap_;       ///< 重叠像素数
+    bool verbose_;      ///< 是否输出详细日志
 
     /**
      * @brief 计算 tile 的混合权重掩码

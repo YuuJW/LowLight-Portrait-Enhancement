@@ -31,3 +31,7 @@ target_link_libraries(retinexformer_engine ${OpenCV_LIBS} onnxruntime)
 # Test program
 add_executable(test_engine src/main.cpp)
 target_link_libraries(test_engine retinexformer_engine)
+
+# Demo program (full-featured with command-line options)
+add_executable(demo src/demo.cpp)
+target_link_libraries(demo retinexformer_engine)

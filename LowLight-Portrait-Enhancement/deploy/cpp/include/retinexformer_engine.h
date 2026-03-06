@@ -12,9 +12,37 @@
 #include <memory>
 #include <opencv2/opencv.hpp>
 
+#include "config.h"
 #include "session_pool.h"
 #include "tiling_manager.h"
 #include "thread_pool.h"
+
+/**
+ * @brief 性能统计结构体
+ *
+ * 记录推理过程各阶段的耗时，用于性能分析和优化
+ */
+struct PerformanceStats {
+    double tiling_time_ms = 0.0;      ///< 分块耗时（毫秒）
+    double inference_time_ms = 0.0;   ///< 推理耗时（毫秒）
+    double merging_time_ms = 0.0;     ///< 融合耗时（毫秒）
+    double total_time_ms = 0.0;       ///< 总耗时（毫秒）
+    int num_tiles = 0;                ///< tile 数量
+
+    /**
+     * @brief 打印性能统计信息
+     */
+    void print() const {
+        std::cout << "\n=== Performance Statistics ===" << std::endl;
+        std::cout << "Tiles: " << num_tiles << std::endl;
+        std::cout << "Tiling:    " << tiling_time_ms << " ms" << std::endl;
+        std::cout << "Inference: " << inference_time_ms << " ms" << std::endl;
+        std::cout << "Merging:   " << merging_time_ms << " ms" << std::endl;
+        std::cout << "Total:     " << total_time_ms << " ms" << std::endl;
+        std::cout << "Avg per tile: " << (num_tiles > 0 ? inference_time_ms / num_tiles : 0) << " ms" << std::endl;
+        std::cout << "===============================" << std::endl;
+    }
+};
 
 /**
  * @brief RetinexFormer 推理引擎
@@ -46,46 +74,66 @@
 class RetinexFormerEngine {
 public:
     /**
-     * @brief 构造函数
+     * @brief 构造函数（使用配置对象）
      * @param model_path ONNX 模型文件路径 (.onnx)
-     * @param num_threads 线程池大小（默认 4，建议设置为 CPU 核心数）
-     * @param session_pool_size 会话池大小（默认等于 num_threads）
+     * @param config 引擎配置（tile大小、线程数等）
      *
      * 说明:
+     * - 使用 EngineConfig 统一管理所有配置参数
      * - 自动加载 ONNX 模型并创建会话池
-     * - 创建 TilingManager (512x512 tiles, 32px overlap)
-     * - 创建线程池用于并行处理
-     * - session_pool_size 建议等于 num_threads，确保每个线程有独立的会话
+     * - 创建 TilingManager 和 ThreadPool
      */
     RetinexFormerEngine(
         const std::string& model_path,
-        int num_threads = 4,
-        int session_pool_size = -1  // -1 表示等于 num_threads
+        const EngineConfig& config = EngineConfig()
+    );
+
+    /**
+     * @brief 构造函数（兼容旧接口）
+     * @param model_path ONNX 模型文件路径 (.onnx)
+     * @param num_threads 线程池大小（默认 4）
+     * @param session_pool_size 会话池大小（默认等于 num_threads）
+     *
+     * 说明:
+     * - 保持向后兼容
+     * - 内部转换为 EngineConfig
+     */
+    RetinexFormerEngine(
+        const std::string& model_path,
+        int num_threads,
+        int session_pool_size = -1
     );
 
     /**
      * @brief 增强图像（主接口）
      * @param input 输入的暗光图像 (BGR 格式)
+     * @param stats 可选的性能统计输出参数
      * @return 增强后的图像 (BGR 格式)
      *
      * 处理流程:
-     * 1. 分割: 将大图分割为 512x512 的 tiles（带 32px 重叠）
+     * 1. 分割: 将大图分割为 tiles（带重叠）
      * 2. 推理: 并行处理所有 tiles（使用线程池 + Session Pool）
      * 3. 融合: 将 tiles 融合回完整图像（重叠区域线性融合）
      *
-     * 支持的图像尺寸:
-     * - 小于 512x512: 自动填充后推理
-     * - 等于 512x512: 直接推理
-     * - 大于 512x512: 分割为多个 tiles 并行推理
-     *
      * 性能说明:
      * - 使用 Session Pool 实现真正的并行推理
-     * - 4核CPU 处理 2048x2048 图像约 0.5-1 秒
+     * - 4核CPU 处理 2048x2048 图像约 2 秒
      * - CPU 利用率接近 100%
      */
-    cv::Mat enhance(const cv::Mat& input);
+    cv::Mat enhance(const cv::Mat& input, PerformanceStats* stats = nullptr);
 
 private:
+    /**
+     * @brief 条件日志输出辅助方法
+     * @param msg 日志消息
+     *
+     * 根据 config_.verbose 决定是否输出日志
+     */
+    void log(const std::string& msg);
+
+    // ===== 配置 =====
+    EngineConfig config_;  ///< 引擎配置
+
     // ===== 推理后端 =====
     std::unique_ptr<SessionPool> session_pool_;  ///< 推理会话池（管理多个推理实例）
 
