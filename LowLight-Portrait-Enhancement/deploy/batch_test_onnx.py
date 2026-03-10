@@ -25,6 +25,7 @@ from tqdm import tqdm
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from project_paths import resolve_onnx_path, resolve_project_path, resolve_weights_path
 from models import RetinexFormerEnhancer
 
 
@@ -91,18 +92,9 @@ def main():
 
     # Resolve paths
     project_root = Path(__file__).parent.parent
-    onnx_path = Path(args.onnx)
-    if not onnx_path.is_absolute():
-        onnx_path = project_root / onnx_path
-
-    if args.weights:
-        weights_path = Path(args.weights)
-    else:
-        weights_path = project_root / 'models' / 'LOL_v2_synthetic.pth'
-
-    image_dir = Path(args.image_dir)
-    if not image_dir.is_absolute():
-        image_dir = project_root / image_dir
+    onnx_path = resolve_onnx_path(args.onnx)
+    weights_path = resolve_weights_path(args.weights)
+    image_dir = resolve_project_path(args.image_dir)
 
     # Check paths
     if not onnx_path.exists():

@@ -114,7 +114,14 @@ private:
      * 3. 边界处权重从 0 渐变到 1，中心区域权重为 1
      * 4. 这样在 merge 时，重叠区域会平滑过渡
      */
-    cv::Mat compute_blend_mask(int tile_w, int tile_h);
+    cv::Mat compute_blend_mask(
+        int tile_w,
+        int tile_h,
+        bool touches_top,
+        bool touches_bottom,
+        bool touches_left,
+        bool touches_right
+    );
 };
 
 #endif

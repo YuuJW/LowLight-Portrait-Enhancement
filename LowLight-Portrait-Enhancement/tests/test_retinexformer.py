@@ -17,6 +17,7 @@ import numpy as np
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from project_paths import resolve_project_path, resolve_weights_path
 from models import RetinexFormerEnhancer
 
 
@@ -36,18 +37,11 @@ def main():
     args = parse_args()
 
     # Resolve paths
-    project_root = Path(__file__).parent.parent
-    image_path = Path(args.image)
-    if not image_path.is_absolute():
-        image_path = project_root / image_path
-
-    if args.weights:
-        weights_path = Path(args.weights)
-    else:
-        weights_path = project_root / 'models' / 'LOL_v2_synthetic.pth'
+    image_path = resolve_project_path(args.image)
+    weights_path = resolve_weights_path(args.weights)
 
     if args.output:
-        output_path = Path(args.output)
+        output_path = resolve_project_path(args.output)
     else:
         output_path = image_path.parent / f'{image_path.stem}_enhanced{image_path.suffix}'
 

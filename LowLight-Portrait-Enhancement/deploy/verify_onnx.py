@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from project_paths import resolve_project_path, resolve_onnx_path, resolve_weights_path
 from models import RetinexFormerEnhancer
 
 
@@ -255,15 +256,8 @@ def main():
     args = parse_args()
 
     # Resolve paths
-    project_root = Path(__file__).parent.parent
-    onnx_path = Path(args.onnx)
-    if not onnx_path.is_absolute():
-        onnx_path = project_root / onnx_path
-
-    if args.weights:
-        weights_path = Path(args.weights)
-    else:
-        weights_path = project_root / 'models' / 'LOL_v2_synthetic.pth'
+    onnx_path = resolve_onnx_path(args.onnx)
+    weights_path = resolve_weights_path(args.weights)
 
     # Check files exist
     if not onnx_path.exists():
@@ -290,11 +284,10 @@ def main():
 
     # 3. 可视化对比
     if args.image:
-        image_path = Path(args.image)
-        if not image_path.is_absolute():
-            image_path = project_root / image_path
+        image_path = resolve_project_path(args.image)
+        output_dir = resolve_project_path(args.output_dir)
         if image_path.exists():
-            visual_comparison(model, onnx_path, image_path, args.output_dir)
+            visual_comparison(model, onnx_path, image_path, output_dir)
         else:
             print(f'Warning: Image not found: {image_path}')
 
@@ -303,9 +296,9 @@ def main():
     print('验证完成')
     print(f'{"="*60}')
     if passed:
-        print('✓ 数值一致性验证通过')
+        print('PASS: numerical consistency verification passed')
     else:
-        print('✗ 数值一致性验证失败')
+        print('FAIL: numerical consistency verification failed')
 
 
 if __name__ == '__main__':

@@ -7,7 +7,9 @@
  */
 
 #include "onnx_wrapper.h"
+#include <fstream>
 #include <iostream>
+#include <stdexcept>
 
 /**
  * @brief 构造函数 - 初始化 ONNX Runtime 推理引擎
@@ -22,6 +24,10 @@
  */
 OnnxWrapper::OnnxWrapper(const std::string& model_path, bool verbose)
     : env_(ORT_LOGGING_LEVEL_WARNING, "RetinexFormer"), verbose_(verbose) {
+    std::ifstream model_stream(model_path, std::ios::binary);
+    if (!model_stream.good()) {
+        throw std::runtime_error("ONNX model not found: " + model_path);
+    }
 
     // 配置 Session 选项
     // SetIntraOpNumThreads(1): 单线程推理，避免与外部线程池冲突
@@ -174,6 +180,13 @@ cv::Mat OnnxWrapper::postprocess(const std::vector<float>& output, int h, int w)
  * - 输入输出都是 BGR 格式，与 OpenCV 保持一致
  */
 cv::Mat OnnxWrapper::inference(const cv::Mat& input_tile) {
+    if (input_tile.empty()) {
+        throw std::invalid_argument("input tile is empty");
+    }
+    if (input_tile.channels() != 3) {
+        throw std::invalid_argument("input tile must have 3 channels");
+    }
+
     // 步骤1: 预处理
     std::vector<float> input_tensor = preprocess(input_tile);
 

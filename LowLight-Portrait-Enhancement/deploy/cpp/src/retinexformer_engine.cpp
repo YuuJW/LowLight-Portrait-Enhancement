@@ -9,6 +9,7 @@
 #include "retinexformer_engine.h"
 #include <iostream>
 #include <chrono>
+#include <stdexcept>
 
 /**
  * @brief 构造函数（使用配置对象）
@@ -100,6 +101,13 @@ void RetinexFormerEngine::log(const std::string& msg) {
 cv::Mat RetinexFormerEngine::enhance(const cv::Mat& input, PerformanceStats* stats) {
     using Clock = std::chrono::high_resolution_clock;
     using Ms = std::chrono::duration<double, std::milli>;
+
+    if (input.empty()) {
+        throw std::invalid_argument("input image is empty");
+    }
+    if (input.channels() != 3) {
+        throw std::invalid_argument("input image must have 3 channels");
+    }
 
     auto total_start = Clock::now();
 

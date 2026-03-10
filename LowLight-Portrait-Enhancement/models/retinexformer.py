@@ -4,6 +4,8 @@ RetinexFormer Model Loader
 Provides a simple interface for loading and running RetinexFormer model.
 """
 
+from __future__ import annotations
+
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -21,7 +23,7 @@ class RetinexFormerEnhancer:
         device: Device to run inference on ('cuda' or 'cpu')
         n_feat: Number of features (default: 40)
         stage: Number of stages (default: 1)
-        num_blocks: Number of blocks per level (default: [1,2,2])
+        num_blocks: Number of blocks per level (default: (1, 2, 2))
     """
 
     def __init__(
@@ -30,8 +32,12 @@ class RetinexFormerEnhancer:
         device: str = None,
         n_feat: int = 40,
         stage: int = 1,
-        num_blocks: list = [1, 2, 2]
+        num_blocks=(1, 2, 2),
     ):
+        weights_file = Path(weights_path)
+        if not weights_file.exists():
+            raise FileNotFoundError(f"Weights not found: {weights_file}")
+
         if device is None:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.device = device
@@ -46,7 +52,7 @@ class RetinexFormerEnhancer:
         )
 
         # Load weights
-        self._load_weights(weights_path)
+        self._load_weights(str(weights_file))
 
         # Set to eval mode
         self.model.to(self.device)
@@ -94,6 +100,15 @@ class RetinexFormerEnhancer:
         Returns:
             Enhanced image as numpy array (H, W, C), BGR format, uint8 [0-255]
         """
+        if not isinstance(image, np.ndarray):
+            raise TypeError('image must be a numpy.ndarray')
+        if image.ndim != 3 or image.shape[2] != 3:
+            raise ValueError('image must have shape [H, W, 3]')
+        if image.size == 0:
+            raise ValueError('image must not be empty')
+        if image.dtype != np.uint8:
+            raise TypeError('image dtype must be uint8')
+
         # BGR to RGB
         img_rgb = image[:, :, ::-1].copy()
 

@@ -1,22 +1,33 @@
-cmake_minimum_required(VERSION 3.10)
-project(RetinexFormerEngine)
+cmake_minimum_required(VERSION 3.16)
+project(RetinexFormerEngine LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# OpenCV
-set(OpenCV_DIR "D:/Softwares/OpenCV/opencv/build")
+get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+get_filename_component(WORKSPACE_ROOT "${PROJECT_ROOT}/.." ABSOLUTE)
+
+if(NOT OpenCV_DIR AND DEFINED ENV{OpenCV_DIR})
+    set(OpenCV_DIR "$ENV{OpenCV_DIR}" CACHE PATH "Path to OpenCVConfig.cmake")
+endif()
 find_package(OpenCV REQUIRED)
 
-# ONNX Runtime
-set(ONNXRUNTIME_DIR "D:/yujw_Projects/img_pro/references/onnxruntime" CACHE PATH "ONNX Runtime directory")
-include_directories(${ONNXRUNTIME_DIR}/include)
-link_directories(${ONNXRUNTIME_DIR}/lib)
+if(DEFINED ENV{ONNXRUNTIME_DIR})
+    set(_default_onnxruntime_dir "$ENV{ONNXRUNTIME_DIR}")
+else()
+    set(_default_onnxruntime_dir "${WORKSPACE_ROOT}/references/onnxruntime")
+endif()
+set(ONNXRUNTIME_DIR "${_default_onnxruntime_dir}" CACHE PATH "Root directory of an ONNX Runtime release")
 
-# Project headers
-include_directories(${CMAKE_SOURCE_DIR}/include)
+if(NOT EXISTS "${ONNXRUNTIME_DIR}/include/onnxruntime_cxx_api.h")
+    message(FATAL_ERROR
+        "ONNXRUNTIME_DIR must point to an ONNX Runtime release with include/ and lib/.\n"
+        "Current value: ${ONNXRUNTIME_DIR}\n"
+        "Example: cmake -S deploy/cpp -B deploy/cpp/build -DONNXRUNTIME_DIR=D:/sdk/onnxruntime"
+    )
+endif()
 
-# Source files
 set(SOURCES
     src/onnx_wrapper.cpp
     src/session_pool.cpp
@@ -24,14 +35,19 @@ set(SOURCES
     src/retinexformer_engine.cpp
 )
 
-# Build library
 add_library(retinexformer_engine STATIC ${SOURCES})
-target_link_libraries(retinexformer_engine ${OpenCV_LIBS} onnxruntime)
+target_include_directories(retinexformer_engine
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE
+        ${ONNXRUNTIME_DIR}/include
+        ${OpenCV_INCLUDE_DIRS}
+)
+target_link_directories(retinexformer_engine PRIVATE ${ONNXRUNTIME_DIR}/lib)
+target_link_libraries(retinexformer_engine PUBLIC ${OpenCV_LIBS} PRIVATE onnxruntime)
 
-# Test program
 add_executable(test_engine src/main.cpp)
-target_link_libraries(test_engine retinexformer_engine)
+target_link_libraries(test_engine PRIVATE retinexformer_engine)
 
-# Demo program (full-featured with command-line options)
 add_executable(demo src/demo.cpp)
-target_link_libraries(demo retinexformer_engine)
+target_link_libraries(demo PRIVATE retinexformer_engine)

@@ -16,6 +16,7 @@ import numpy as np
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from project_paths import resolve_onnx_path, resolve_weights_path
 from models import RetinexFormerEnhancer
 
 
@@ -137,10 +138,10 @@ def check_onnx_model(onnx_path):
     try:
         model = onnx.load(str(onnx_path))
         onnx.checker.check_model(model)
-        print('  Status: ✓ Model is valid')
+        print('  Status: PASS - model is valid')
         return True
     except Exception as e:
-        print(f'  Status: ✗ Model check failed: {e}')
+        print(f'  Status: FAIL - model check failed: {e}')
         return False
 
 
@@ -203,15 +204,8 @@ def main():
     args = parse_args()
 
     # Resolve paths
-    project_root = Path(__file__).parent.parent
-    if args.weights:
-        weights_path = Path(args.weights)
-    else:
-        weights_path = project_root / 'models' / 'LOL_v2_synthetic.pth'
-
-    output_path = Path(args.output)
-    if not output_path.is_absolute():
-        output_path = project_root / output_path
+    weights_path = resolve_weights_path(args.weights)
+    output_path = resolve_onnx_path(args.output)
 
     # Check weights exist
     if not weights_path.exists():

@@ -1,0 +1,19 @@
+name: lowlight-portrait-enhancement
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch
+  - torchvision
+  - numpy
+  - opencv
+  - matplotlib
+  - tqdm
+  - pip:
+      - onnx
+      - onnxruntime
+      - onnxsim
+      - einops
+      - gdown
