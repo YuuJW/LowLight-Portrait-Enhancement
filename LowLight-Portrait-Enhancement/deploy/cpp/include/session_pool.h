@@ -76,18 +76,19 @@ public:
 
     /**
      * @brief 获取一个空闲会话
-     * @return 推理会话指针
+     * @param timeout_ms 超时时间（毫秒），0 表示无限等待（默认 30000ms）
+     * @return 推理会话指针，超时返回 nullptr
      *
      * 说明:
      * - 如果有空闲会话，立即返回
-     * - 如果没有空闲会话，阻塞等待直到有会话归还
+     * - 如果没有空闲会话，阻塞等待直到有会话归还或超时
      * - 线程安全
      *
      * 注意:
      * - 使用完毕后必须调用 release() 归还会话
      * - 否则会导致其他线程永久等待
      */
-    OnnxWrapper* acquire();
+    OnnxWrapper* acquire(int timeout_ms = 30000);
 
     /**
      * @brief 归还会话到池中

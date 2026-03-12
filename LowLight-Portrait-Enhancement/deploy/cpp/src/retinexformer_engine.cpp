@@ -130,9 +130,18 @@ cv::Mat RetinexFormerEngine::enhance(const cv::Mat& input, PerformanceStats* sta
             thread_pool_->enqueue([this, tile_data = tile.data]() {
                 // 从 Session Pool 获取一个空闲会话
                 auto session = session_pool_->acquire();
+                if (!session) {
+                    throw std::runtime_error("Failed to acquire session (timeout)");
+                }
 
-                // 执行推理
-                cv::Mat result = session->inference(tile_data);
+                // 确保异常时也能归还会话
+                cv::Mat result;
+                try {
+                    result = session->inference(tile_data);
+                } catch (...) {
+                    session_pool_->release(session);
+                    throw;  // 重新抛出，由 future.get() 传播
+                }
 
                 // 归还会话到池中
                 session_pool_->release(session);

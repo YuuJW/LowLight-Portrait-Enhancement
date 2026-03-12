@@ -142,16 +142,18 @@ std::vector<float> OnnxWrapper::preprocess(const cv::Mat& bgr) {
  */
 cv::Mat OnnxWrapper::postprocess(const std::vector<float>& output, int h, int w) {
     // CHW → HWC + RGB → BGR (使用 OpenCV 矩阵运算优化)
-    // 将 CHW 格式的输出转换为三个独立的通道
+    const int plane_size = h * w;
     std::vector<cv::Mat> channels(3);
 
-    // 注意：模型输出是 RGB 顺序，需要转换为 OpenCV 的 BGR 顺序
-    // output[0*h*w : 1*h*w] = R channel → BGR 的 channels[2] (B 位置)
-    // output[1*h*w : 2*h*w] = G channel → BGR 的 channels[1] (G 位置)
-    // output[2*h*w : 3*h*w] = B channel → BGR 的 channels[0] (R 位置)
-    channels[2] = cv::Mat(h, w, CV_32FC1, const_cast<float*>(output.data() + 0 * h * w)).clone(); // R → B
-    channels[1] = cv::Mat(h, w, CV_32FC1, const_cast<float*>(output.data() + 1 * h * w)).clone(); // G → G
-    channels[0] = cv::Mat(h, w, CV_32FC1, const_cast<float*>(output.data() + 2 * h * w)).clone(); // B → R
+    // 模型输出是 RGB 顺序，转换为 OpenCV 的 BGR 顺序
+    // 直接从 output 数据创建 Mat 并 clone，避免 const_cast
+    const float* r_plane = output.data();
+    const float* g_plane = output.data() + plane_size;
+    const float* b_plane = output.data() + 2 * plane_size;
+
+    cv::Mat(h, w, CV_32FC1, (void*)r_plane).copyTo(channels[2]); // R → B position
+    cv::Mat(h, w, CV_32FC1, (void*)g_plane).copyTo(channels[1]); // G → G position
+    cv::Mat(h, w, CV_32FC1, (void*)b_plane).copyTo(channels[0]); // B → R position
 
     // 合并三个通道为 BGR 图像
     cv::Mat result;
@@ -209,10 +211,17 @@ cv::Mat OnnxWrapper::inference(const cv::Mat& input_tile) {
         output_names, 1
     );
 
-    // 步骤4: 提取输出数据
+    // 步骤4: 提取输出数据并校验
     float* output_data = output_tensors[0].GetTensorMutableData<float>();
     auto output_info = output_tensors[0].GetTensorTypeAndShapeInfo();
     auto output_dims = output_info.GetShape();
+
+    if (output_dims.size() != 4 || output_dims[1] != 3) {
+        throw std::runtime_error(
+            "Unexpected ONNX output shape: expected [N,3,H,W], got " +
+            std::to_string(output_dims.size()) + "D tensor"
+        );
+    }
 
     int out_h = output_dims[2];
     int out_w = output_dims[3];

@@ -35,15 +35,27 @@ SessionPool::SessionPool(const std::string& model_path, size_t pool_size, bool v
 /**
  * @brief 获取一个空闲会话
  *
- * 如果没有空闲会话，阻塞等待直到有会话归还
+ * 如果没有空闲会话，阻塞等待直到有会话归还或超时
+ * @param timeout_ms 超时时间（毫秒），0 表示无限等待
+ * @return 会话指针，超时返回 nullptr
  */
-OnnxWrapper* SessionPool::acquire() {
+OnnxWrapper* SessionPool::acquire(int timeout_ms) {
     std::unique_lock<std::mutex> lock(mutex_);
 
-    // 等待直到有空闲会话
-    condition_.wait(lock, [this]() {
-        return !available_.empty();
-    });
+    if (timeout_ms > 0) {
+        // 带超时等待
+        bool got = condition_.wait_for(lock, std::chrono::milliseconds(timeout_ms), [this]() {
+            return !available_.empty();
+        });
+        if (!got) {
+            return nullptr;  // 超时
+        }
+    } else {
+        // 无限等待（向后兼容）
+        condition_.wait(lock, [this]() {
+            return !available_.empty();
+        });
+    }
 
     // 从队列取出一个会话
     OnnxWrapper* session = available_.front();
@@ -70,18 +82,25 @@ void SessionPool::release(OnnxWrapper* session) {
 /**
  * @brief 析构函数
  *
- * 等待所有会话归还，然后释放资源
+ * 等待所有会话归还（带超时保护），然后释放资源
+ * 超时后强制销毁，避免死锁
  */
 SessionPool::~SessionPool() {
     if (verbose_) {
         std::cout << "Destroying SessionPool..." << std::endl;
     }
 
-    // 等待所有会话归还
+    // 等待所有会话归还，最多等待 5 秒
     std::unique_lock<std::mutex> lock(mutex_);
-    condition_.wait(lock, [this]() {
+    bool all_returned = condition_.wait_for(lock, std::chrono::seconds(5), [this]() {
         return available_.size() == pool_size_;
     });
+
+    if (!all_returned) {
+        std::cerr << "Warning: SessionPool destroyed with "
+                  << (pool_size_ - available_.size())
+                  << " sessions still in use (timeout after 5s)" << std::endl;
+    }
 
     if (verbose_) {
         std::cout << "SessionPool destroyed" << std::endl;

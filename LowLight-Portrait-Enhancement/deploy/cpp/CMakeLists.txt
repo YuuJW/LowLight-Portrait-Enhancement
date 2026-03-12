@@ -39,12 +39,11 @@ add_library(retinexformer_engine STATIC ${SOURCES})
 target_include_directories(retinexformer_engine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PRIVATE
         ${ONNXRUNTIME_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
 )
-target_link_directories(retinexformer_engine PRIVATE ${ONNXRUNTIME_DIR}/lib)
-target_link_libraries(retinexformer_engine PUBLIC ${OpenCV_LIBS} PRIVATE onnxruntime)
+target_link_directories(retinexformer_engine PUBLIC ${ONNXRUNTIME_DIR}/lib)
+target_link_libraries(retinexformer_engine PUBLIC ${OpenCV_LIBS} onnxruntime)
 
 add_executable(test_engine src/main.cpp)
 target_link_libraries(test_engine PRIVATE retinexformer_engine)
